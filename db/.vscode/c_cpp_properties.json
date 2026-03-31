@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/Qt/6.5.0/msvc2019_64/include",
+                "C:/Qt/6.5.0/msvc2019_64/include/QtCore",
+                "C:/Qt/6.5.0/msvc2019_64/include/QtNetwork",
+                "C:/Qt/6.5.0/msvc2019_64/include/QtSql"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "QT_CORE_LIB",
+                "QT_NETWORK_LIB",
+                "QT_SQL_LIB"
+            ],
+            "compilerPath": "C:/Qt/Tools/mingw1120_64/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
