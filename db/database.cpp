@@ -1,278 +1,201 @@
 #include "database.h"
+#include <QCryptographicHash>
+#include <QFile>
+#include <cmath>
+#include <QDir>
 
-// Инициализация статических переменных
-Database* Database::p_instance = nullptr;
-DatabaseDestroyer Database::destroyer;
+Database* Database::m_instance = nullptr;
 
-// ============================================
-// Конструктор и деструктор
-// ============================================
+Database* Database::getInstance()
+{
+    if (!m_instance) {
+        m_instance = new Database();
+    }
+    return m_instance;
+}
 
 Database::Database(QObject *parent) : QObject(parent)
 {
-    qDebug() << "Initializing Database singleton...";
-    
-    if (connectToDatabase()) {
-        createTables();
-        qDebug() << "Database initialized successfully!";
-    } else {
-        qDebug() << "Database initialization failed!";
-    }
+    qDebug() << "Database constructor called";
+    connectToDatabase();
 }
 
 Database::~Database()
 {
-    if (db.isOpen()) {
-        db.close();
-        qDebug() << "Database connection closed";
+    qDebug() << "Database destructor called";
+    if (m_db.isOpen()) {
+        m_db.close();
     }
 }
-
-// ============================================
-// Подключение к БД
-// ============================================
 
 bool Database::connectToDatabase()
 {
-    // Используем SQLite
-    db = QSqlDatabase::addDatabase("QSQLITE");
+    // Получаем путь к текущей директории
+    QString dbPath = QDir::current().absolutePath() + "/server.db";
+    qDebug() << "Database path:" << dbPath;
     
-    // Универсальный путь для разных ОС
-    #ifdef Q_OS_WIN
-        // Для Windows
-        db.setDatabaseName("server.db");
-        qDebug() << "Using Windows path: server.db";
-    #else
-        // Для Linux/Docker
-        db.setDatabaseName("/app/data/server.db");
-        qDebug() << "Using Linux path: /app/data/server.db";
-    #endif
+    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    m_db.setDatabaseName(dbPath);
     
-    if (!db.open()) {
-        qDebug() << "ERROR: Database connection failed!";
-        qDebug() << "Error:" << db.lastError().text();
+    if (!m_db.open()) {
+        qDebug() << "Failed to open database:" << m_db.lastError().text();
+        return false;
+    }
+    qDebug() << "Database connected successfully";
+    
+    // Создаем таблицы
+    QSqlQuery query;
+    
+    QString createUsers = "CREATE TABLE IF NOT EXISTS users ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "username TEXT UNIQUE, "
+                          "password TEXT)";
+    
+    QString createLogs = "CREATE TABLE IF NOT EXISTS logs ("
+                         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                         "command TEXT, "
+                         "request TEXT, "
+                         "result TEXT, "
+                         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
+    
+    if (!query.exec(createUsers)) {
+        qDebug() << "Failed to create users table:" << query.lastError().text();
         return false;
     }
     
-    qDebug() << "Database connected successfully!";
+    if (!query.exec(createLogs)) {
+        qDebug() << "Failed to create logs table:" << query.lastError().text();
+        return false;
+    }
+    
+    qDebug() << "Tables created successfully";
     return true;
 }
-
-// ============================================
-// Создание таблиц
-// ============================================
 
 bool Database::createTables()
 {
-    QSqlQuery query;
-    
-    // Таблица пользователей (для авторизации)
-    QString createUsersTable = R"(
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    )";
-    
-    if (!query.exec(createUsersTable)) {
-        qDebug() << "ERROR: Failed to create users table:" << query.lastError().text();
-        return false;
-    }
-    
-    // Таблица для логов запросов
-    QString createLogsTable = R"(
-        CREATE TABLE IF NOT EXISTS request_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            command TEXT NOT NULL,
-            parameters TEXT,
-            result TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    )";
-    
-    if (!query.exec(createLogsTable)) {
-        qDebug() << "ERROR: Failed to create logs table:" << query.lastError().text();
-        return false;
-    }
-    
-    // Таблица для шифрования Виженера
-    QString createVigenereTable = R"(
-        CREATE TABLE IF NOT EXISTS vigenere_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            input_text TEXT NOT NULL,
-            key TEXT NOT NULL,
-            output_text TEXT NOT NULL,
-            operation_type TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    )";
-    
-    if (!query.exec(createVigenereTable)) {
-        qDebug() << "ERROR: Failed to create vigenere table:" << query.lastError().text();
-        return false;
-    }
-    
-    // Таблица для SHA-384 хэшей
-    QString createShaTable = R"(
-        CREATE TABLE IF NOT EXISTS sha_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            input_text TEXT NOT NULL,
-            hash TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    )";
-    
-    if (!query.exec(createShaTable)) {
-        qDebug() << "ERROR: Failed to create sha table:" << query.lastError().text();
-        return false;
-    }
-    
-    qDebug() << "All tables created successfully!";
-    return true;
+    return true; // Уже создано в connectToDatabase
 }
 
-// ============================================
-// Получение экземпляра синглтона
-// ============================================
-
-Database* Database::getInstance()
+bool Database::executeQuery(const QString &query)
 {
-    if (!p_instance) {
-        p_instance = new Database();
-        destroyer.initialize(p_instance);
-        qDebug() << "Database singleton instance created";
-    }
-    return p_instance;
+    QSqlQuery sqlQuery;
+    return sqlQuery.exec(query);
 }
 
-// ============================================
-// ЗАГЛУШКИ ДЛЯ ФУНКЦИОНАЛА
-// ============================================
-
-bool Database::vigenereCipher(const QString &text, const QString &key, QString &result)
+bool Database::vigenereCipher(const QString &text, const QString &key, QString &encrypted)
 {
-    qDebug() << "Vigenere cipher called (STUB)";
-    qDebug() << "  Text:" << text;
-    qDebug() << "  Key:" << key;
+    encrypted.clear();
+    QString keyRepeated = key;
+    while (keyRepeated.length() < text.length()) {
+        keyRepeated += key;
+    }
     
-    // ЗАГЛУШКА - здесь будет реальная реализация
-    result = QString("[STUB] Encrypted: %1 with key: %2").arg(text).arg(key);
-    
-    // Сохраняем в БД
-    QSqlQuery query;
-    query.prepare("INSERT INTO vigenere_history (input_text, key, output_text, operation_type) VALUES (?, ?, ?, 'encrypt')");
-    query.addBindValue(text);
-    query.addBindValue(key);
-    query.addBindValue(result);
-    query.exec();
-    
+    for (int i = 0; i < text.length(); ++i) {
+        QChar textChar = text[i];
+        QChar keyChar = keyRepeated[i];
+        
+        if (textChar.isLetter()) {
+            QChar base = textChar.isUpper() ? 'A' : 'a';
+            QChar keyBase = keyChar.isUpper() ? 'A' : 'a';
+            
+            int textPos = textChar.toLatin1() - base.toLatin1();
+            int keyPos = keyChar.toLatin1() - keyBase.toLatin1();
+            int encryptedPos = (textPos + keyPos) % 26;
+            
+            encrypted.append(QChar(base.toLatin1() + encryptedPos));
+        } else {
+            encrypted.append(textChar);
+        }
+    }
     return true;
 }
 
 bool Database::sha384Hash(const QString &text, QString &hash)
 {
-    qDebug() << "SHA-384 hash called (STUB)";
-    qDebug() << "  Text:" << text;
-    
-    // ЗАГЛУШКА - здесь будет реальная реализация
-    hash = QString("[STUB] SHA384 hash of: %1").arg(text);
-    
-    // Сохраняем в БД
-    QSqlQuery query;
-    query.prepare("INSERT INTO sha_history (input_text, hash) VALUES (?, ?)");
-    query.addBindValue(text);
-    query.addBindValue(hash);
-    query.exec();
-    
+    QCryptographicHash hasher(QCryptographicHash::Sha384);
+    hasher.addData(text.toUtf8());
+    hash = hasher.result().toHex();
     return true;
 }
 
-bool Database::chordMethod(double a, double b, double epsilon, double &result)
+bool Database::chordMethod(double a, double b, double eps, double &result)
 {
-    qDebug() << "Chord method called (STUB)";
-    qDebug() << "  a:" << a << "b:" << b << "epsilon:" << epsilon;
+    auto f = [](double x) { return x*x*x - 2*x - 5; };
     
-    // ЗАГЛУШКА - здесь будет реальная реализация
-    result = (a + b) / 2.0;  // Просто среднее значение
+    double x0 = a, x1 = b;
+    double x2;
+    int maxIter = 100;
+    int iter = 0;
     
-    // Сохраняем в БД
-    QSqlQuery query;
-    query.prepare("INSERT INTO request_logs (command, parameters, result) VALUES ('CHORD', ?, ?)");
-    QString params = QString("a=%1, b=%2, eps=%3").arg(a).arg(b).arg(epsilon);
-    query.addBindValue(params);
-    query.addBindValue(QString::number(result));
-    query.exec();
-    
+    while (iter < maxIter) {
+        x2 = x1 - f(x1) * (x1 - x0) / (f(x1) - f(x0));
+        if (fabs(x2 - x1) < eps) {
+            result = x2;
+            return true;
+        }
+        x0 = x1;
+        x1 = x2;
+        iter++;
+    }
+    result = x2;
     return true;
 }
 
-bool Database::hideMessageInImage(const QString &imagePath, const QString &message, QString &outputPath)
+bool Database::hideMessageInImage(const QString &imagePath, const QString &message, const QString &outputPath)
 {
-    qDebug() << "Hide message in image called (STUB)";
-    qDebug() << "  Image:" << imagePath;
-    qDebug() << "  Message:" << message;
-    
-    // ЗАГЛУШКА - здесь будет реальная реализация
-    outputPath = QString("[STUB] %1_encoded.png").arg(imagePath);
-    
+    Q_UNUSED(imagePath);
+    Q_UNUSED(message);
+    Q_UNUSED(outputPath);
     return true;
 }
-
-// ============================================
-// АВТОРИЗАЦИЯ (заглушки)
-// ============================================
 
 bool Database::registerUser(const QString &username, const QString &password)
 {
-    qDebug() << "Register user called (STUB)";
-    qDebug() << "  Username:" << username;
-    
-    // ЗАГЛУШКА - всегда успешно
     QSqlQuery query;
+    QString hashedPassword;
+    sha384Hash(password, hashedPassword);
+    
     query.prepare("INSERT INTO users (username, password) VALUES (?, ?)");
     query.addBindValue(username);
-    query.addBindValue(password);
+    query.addBindValue(hashedPassword);
     
-    if (query.exec()) {
-        qDebug() << "User registered successfully";
-        return true;
-    } else {
-        qDebug() << "User registration failed:" << query.lastError().text();
+    if (!query.exec()) {
+        qDebug() << "Register failed:" << query.lastError().text();
         return false;
     }
+    return true;
 }
 
 bool Database::loginUser(const QString &username, const QString &password)
 {
-    qDebug() << "Login user called (STUB)";
-    qDebug() << "  Username:" << username;
-    
-    // ЗАГЛУШКА - проверяем существование пользователя
     QSqlQuery query;
-    query.prepare("SELECT * FROM users WHERE username = ? AND password = ?");
-    query.addBindValue(username);
-    query.addBindValue(password);
-    query.exec();
+    QString hashedPassword;
+    sha384Hash(password, hashedPassword);
     
-    if (query.next()) {
-        qDebug() << "Login successful";
-        return true;
-    } else {
-        qDebug() << "Login failed - user not found";
+    query.prepare("SELECT id FROM users WHERE username = ? AND password = ?");
+    query.addBindValue(username);
+    query.addBindValue(hashedPassword);
+    
+    if (!query.exec()) {
+        qDebug() << "Login query failed:" << query.lastError().text();
         return false;
     }
+    
+    return query.next();
 }
 
-bool Database::saveRequestLog(const QString &command, const QString &params, const QString &result)
+bool Database::saveRequestLog(const QString &command, const QString &request, const QString &result)
 {
     QSqlQuery query;
-    query.prepare("INSERT INTO request_logs (command, parameters, result) VALUES (?, ?, ?)");
+    query.prepare("INSERT INTO logs (command, request, result) VALUES (?, ?, ?)");
     query.addBindValue(command);
-    query.addBindValue(params);
+    query.addBindValue(request);
     query.addBindValue(result);
     
-    return query.exec();
+    if (!query.exec()) {
+        qDebug() << "Failed to save log:" << query.lastError().text();
+        return false;
+    }
+    return true;
 }

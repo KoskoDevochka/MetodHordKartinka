@@ -1,40 +1,28 @@
 #ifndef MYTCPSERVER_H
 #define MYTCPSERVER_H
 
-#include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QtNetwork>
-#include <QByteArray>
+#include <QObject>
 #include <QDebug>
-#include <QMap>
-#include <QStringList>
-
 #include "database.h"
 
-class MyTcpServer : public QObject
+class MyTcpServer : public QTcpServer
 {
     Q_OBJECT
-    
 public:
-    explicit MyTcpServer(QObject *parent = nullptr);
+    static MyTcpServer* getInstance();
     ~MyTcpServer();
     
-    // Отправка сообщения клиенту
-    void sendToClient(QTcpSocket* socket, const QString &response);
-    
-public slots:
-    void slotNewConnection();
-    void slotClientDisconnected();
-    void slotServerRead();
+protected:
+    void incomingConnection(qintptr socketDescriptor) override;
     
 private:
-    QTcpServer *mTcpServer;
-    QMap<QTcpSocket*, QString> mClients;  // Хранение клиентов
-    Database *db;  // Указатель на БД (синглтон)
+    explicit MyTcpServer(QObject *parent = nullptr);
+    static MyTcpServer* m_instance;
     
-    // Парсинг и обработка запросов
+    void processRequest(QTcpSocket* socket, const QString &request);
     QString parseRequest(const QString &request, QTcpSocket* socket);
 };
 
-#endif // MYTCPSERVER_H
+#endif

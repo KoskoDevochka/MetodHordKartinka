@@ -1,265 +1,136 @@
 #include "mytcpserver.h"
+#include <QThread>
 
-MyTcpServer::MyTcpServer(QObject *parent) : QObject(parent)
+MyTcpServer* MyTcpServer::m_instance = nullptr;
+
+MyTcpServer* MyTcpServer::getInstance()
 {
-    mTcpServer = new QTcpServer(this);
-    
-    // Получаем экземпляр БД (синглтон!)
-    db = Database::getInstance();
-    
-    // Слушаем все интерфейсы на порту 33333
-    if (mTcpServer->listen(QHostAddress::Any, 33333)) {
-        qDebug() << "========================================";
-        qDebug() << "Server started successfully!";
-        qDebug() << "Port: 33333";
-        qDebug() << "Listening on all network interfaces";
-        qDebug() << "========================================";
-        
-        // Выводим IP адреса сервера
-        QList<QHostAddress> addresses = QNetworkInterface::allAddresses();
-        for (const QHostAddress& addr : addresses) {
-            if (addr != QHostAddress::LocalHost && 
-                addr.protocol() == QAbstractSocket::IPv4Protocol) {
-                qDebug() << "Server IP:" << addr.toString();
-            }
-        }
-        qDebug() << "========================================";
-        
-        connect(mTcpServer, &QTcpServer::newConnection, 
-                this, &MyTcpServer::slotNewConnection);
+    if (!m_instance) {
+        m_instance = new MyTcpServer();
+    }
+    return m_instance;
+}
+
+MyTcpServer::MyTcpServer(QObject *parent) : QTcpServer(parent)
+{
+    if (listen(QHostAddress::Any, 12345)) {
+        qDebug() << "Server started on port 12345";
     } else {
-        qDebug() << "ERROR: Server failed to start!";
-        qDebug() << "Error:" << mTcpServer->errorString();
+        qDebug() << "Failed to start server";
     }
 }
 
 MyTcpServer::~MyTcpServer()
 {
-    if (mTcpServer) {
-        mTcpServer->close();
-        qDebug() << "Server stopped";
-    }
-    
-    // Закрываем все соединения
-    for (auto it = mClients.begin(); it != mClients.end(); ++it) {
-        if (it.key()) {
-            it.key()->close();
-            it.key()->deleteLater();
-        }
-    }
-    mClients.clear();
+    qDebug() << "Server stopped";
 }
 
-void MyTcpServer::slotNewConnection()
+void MyTcpServer::incomingConnection(qintptr socketDescriptor)
 {
-    QTcpSocket* socket = mTcpServer->nextPendingConnection();
+    QTcpSocket* socket = new QTcpSocket(this);
+    socket->setSocketDescriptor(socketDescriptor);
     
-    if (socket) {
-        connect(socket, &QTcpSocket::readyRead, 
-                this, &MyTcpServer::slotServerRead);
-        connect(socket, &QTcpSocket::disconnected, 
-                this, &MyTcpServer::slotClientDisconnected);
-        
-        QString clientInfo = QString("%1:%2")
-            .arg(socket->peerAddress().toString())
-            .arg(socket->peerPort());
-        
-        mClients.insert(socket, clientInfo);
-        
-        qDebug() << "========================================";
-        qDebug() << "New client connected!";
-        qDebug() << "Client:" << clientInfo;
-        qDebug() << "Total clients:" << mClients.size();
-        qDebug() << "========================================";
-        
-        // Отправляем приветственное сообщение
-        sendToClient(socket, "WELCOME|Connected to TAM&P Server");
-    }
+    connect(socket, &QTcpSocket::readyRead, [this, socket]() {
+        QByteArray data = socket->readAll();
+        QString request = QString::fromUtf8(data);
+        processRequest(socket, request);
+    });
+    
+    connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
 }
 
-void MyTcpServer::slotClientDisconnected()
+void MyTcpServer::processRequest(QTcpSocket* socket, const QString &request)
 {
-    QTcpSocket* socket = qobject_cast<QTcpSocket*>(sender());
-    if (socket) {
-        QString clientInfo = mClients.value(socket, "Unknown");
-        qDebug() << "Client disconnected:" << clientInfo;
-        mClients.remove(socket);
-        socket->deleteLater();
-        qDebug() << "Total clients remaining:" << mClients.size();
-    }
-}
-
-void MyTcpServer::slotServerRead()
-{
-    QTcpSocket* socket = qobject_cast<QTcpSocket*>(sender());
-    if (!socket) return;
+    qDebug() << "Received request:" << request;
     
-    // Читаем все данные
-    QByteArray data = socket->readAll();
-    QString request = QString::fromUtf8(data).trimmed();
-    
-    if (request.isEmpty()) return;
-    
-    QString clientInfo = mClients.value(socket, "Unknown");
-    qDebug() << "----------------------------------------";
-    qDebug() << "Received from" << clientInfo << ":";
-    qDebug() << "  " << request;
-    
-    // Парсим запрос
     QString response = parseRequest(request, socket);
-    
-    // Отправляем ответ
-    sendToClient(socket, response);
-    
-    qDebug() << "Response sent:" << response;
-    qDebug() << "----------------------------------------";
-}
-
-void MyTcpServer::sendToClient(QTcpSocket* socket, const QString &response)
-{
-    if (socket && socket->isOpen()) {
-        QByteArray data = response.toUtf8() + "\n";
-        socket->write(data);
-        socket->flush();
-    }
+    socket->write(response.toUtf8());
+    socket->flush();
+    socket->disconnectFromHost();
 }
 
 QString MyTcpServer::parseRequest(const QString &request, QTcpSocket* socket)
 {
-    // Парсим запрос в формате: "КОМАНДА|ПАРАМЕТР1|ПАРАМЕТР2|..."
-    QStringList parts = request.split('|');
+    Q_UNUSED(socket);
     
-    if (parts.isEmpty()) {
-        return "ERROR|Empty request";
-    }
+    // Убираем пробелы, табы, переводы строк
+    QString cmd = request.trimmed();
     
-    QString command = parts[0].toUpper();
-    QString result;
-    double numResult;
+    qDebug() << "Parsed command:" << cmd;
+    
+    Database* db = Database::getInstance();
+    QString response;
     
     // Обработка команд
-    if (command == "PING" || command == "HELLO") {
-        result = "OK|PONG";
+    if (cmd == "PING" || cmd == "ping") {
+        response = "OK:PONG\n";
     }
-    else if (command == "VIGENERE" || command == "VIG") {
-        // Формат: VIGENERE|text|key
-        if (parts.size() >= 3) {
-            QString text = parts[1];
-            QString key = parts[2];
-            QString encrypted;
-            
-            if (db->vigenereCipher(text, key, encrypted)) {
-                result = "OK|" + encrypted;
-            } else {
-                result = "ERROR|Vigenere cipher failed";
-            }
+    else if (cmd.startsWith("HASH:") || cmd.startsWith("hash:")) {
+        QString text = cmd.mid(5);
+        QString hash;
+        if (db->sha384Hash(text, hash)) {
+            response = "OK:" + hash + "\n";
         } else {
-            result = "ERROR|Invalid parameters. Format: VIGENERE|text|key";
+            response = "ERROR:Hash failed\n";
         }
     }
-    else if (command == "SHA384" || command == "SHA") {
-        // Формат: SHA384|text
+    else if (cmd.startsWith("REGISTER:") || cmd.startsWith("register:")) {
+        QStringList parts = cmd.mid(9).split(":");
         if (parts.size() >= 2) {
-            QString text = parts[1];
-            QString hash;
-            
-            if (db->sha384Hash(text, hash)) {
-                result = "OK|" + hash;
+            if (db->registerUser(parts[0], parts[1])) {
+                response = "OK:User registered\n";
             } else {
-                result = "ERROR|SHA-384 hash failed";
+                response = "ERROR:Registration failed\n";
             }
         } else {
-            result = "ERROR|Invalid parameters. Format: SHA384|text";
+            response = "ERROR:Invalid format. Use: REGISTER:username:password\n";
         }
     }
-    else if (command == "CHORD") {
-        // Формат: CHORD|a|b|epsilon
-        if (parts.size() >= 4) {
-            bool ok1, ok2, ok3;
-            double a = parts[1].toDouble(&ok1);
-            double b = parts[2].toDouble(&ok2);
-            double eps = parts[3].toDouble(&ok3);
-            
-            if (ok1 && ok2 && ok3) {
-                double chordResult;
-                if (db->chordMethod(a, b, eps, chordResult)) {
-                    result = "OK|" + QString::number(chordResult);
-                } else {
-                    result = "ERROR|Chord method failed";
-                }
+    else if (cmd.startsWith("LOGIN:") || cmd.startsWith("login:")) {
+        QStringList parts = cmd.mid(6).split(":");
+        if (parts.size() >= 2) {
+            if (db->loginUser(parts[0], parts[1])) {
+                response = "OK:Login successful\n";
             } else {
-                result = "ERROR|Invalid numeric parameters";
+                response = "ERROR:Invalid credentials\n";
             }
         } else {
-            result = "ERROR|Invalid parameters. Format: CHORD|a|b|epsilon";
+            response = "ERROR:Invalid format. Use: LOGIN:username:password\n";
         }
     }
-    else if (command == "HIDE_IMAGE" || command == "HIDE") {
-        // Формат: HIDE_IMAGE|image_path|message
+    else if (cmd.startsWith("CIPHER:") || cmd.startsWith("cipher:")) {
+        QStringList parts = cmd.mid(7).split(":");
+        if (parts.size() >= 2) {
+            QString encrypted;
+            if (db->vigenereCipher(parts[0], parts[1], encrypted)) {
+                response = "OK:" + encrypted + "\n";
+            } else {
+                response = "ERROR:Cipher failed\n";
+            }
+        } else {
+            response = "ERROR:Invalid format. Use: CIPHER:text:key\n";
+        }
+    }
+    else if (cmd.startsWith("CHORD:") || cmd.startsWith("chord:")) {
+        QStringList parts = cmd.mid(6).split(":");
         if (parts.size() >= 3) {
-            QString imagePath = parts[1];
-            QString message = parts[2];
-            QString outputPath;
-            
-            if (db->hideMessageInImage(imagePath, message, outputPath)) {
-                result = "OK|" + outputPath;
+            double a = parts[0].toDouble();
+            double b = parts[1].toDouble();
+            double eps = parts[2].toDouble();
+            double result;
+            if (db->chordMethod(a, b, eps, result)) {
+                response = "OK:" + QString::number(result) + "\n";
             } else {
-                result = "ERROR|Hide message failed";
+                response = "ERROR:Chord method failed\n";
             }
         } else {
-            result = "ERROR|Invalid parameters. Format: HIDE_IMAGE|path|message";
+            response = "ERROR:Invalid format. Use: CHORD:a:b:eps\n";
         }
-    }
-    else if (command == "REGISTER") {
-        // Формат: REGISTER|username|password
-        if (parts.size() >= 3) {
-            QString username = parts[1];
-            QString password = parts[2];
-            
-            if (db->registerUser(username, password)) {
-                result = "OK|User registered successfully";
-            } else {
-                result = "ERROR|Registration failed";
-            }
-        } else {
-            result = "ERROR|Invalid parameters. Format: REGISTER|username|password";
-        }
-    }
-    else if (command == "LOGIN") {
-        // Формат: LOGIN|username|password
-        if (parts.size() >= 3) {
-            QString username = parts[1];
-            QString password = parts[2];
-            
-            if (db->loginUser(username, password)) {
-                result = "OK|Login successful";
-            } else {
-                result = "ERROR|Invalid credentials";
-            }
-        } else {
-            result = "ERROR|Invalid parameters. Format: LOGIN|username|password";
-        }
-    }
-    else if (command == "HELP") {
-        result = "OK|Available commands:\n"
-                 "  PING - Test connection\n"
-                 "  VIGENERE|text|key - Vigenere cipher\n"
-                 "  SHA384|text - SHA-384 hash\n"
-                 "  CHORD|a|b|epsilon - Chord method\n"
-                 "  HIDE_IMAGE|path|message - Steganography\n"
-                 "  REGISTER|user|pass - Register user\n"
-                 "  LOGIN|user|pass - Login user\n"
-                 "  HELP - Show this help";
-    }
-    else if (command == "STATUS") {
-        result = QString("OK|Server running. Connected clients: %1").arg(mClients.size());
     }
     else {
-        result = "ERROR|Unknown command: " + command + ". Type HELP for available commands";
+        response = "ERROR:Unknown command. Available: PING, HASH:text, REGISTER:user:pass, LOGIN:user:pass, CIPHER:text:key, CHORD:a:b:eps\n";
     }
     
-    // Сохраняем запрос в лог
-    db->saveRequestLog(command, request, result);
-    
-    return result;
+    db->saveRequestLog("parseRequest", cmd, response);
+    return response;
 }

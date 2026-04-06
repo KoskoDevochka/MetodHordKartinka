@@ -1,22 +1,31 @@
 #include <QCoreApplication>
 #include <QDebug>
-#include <QTimer>
+#include "database.h"
 #include "mytcpserver.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     
-    qDebug() << "========================================";
-    qDebug() << "TAM&P Server Starting...";
-    qDebug() << "========================================";
+    qDebug() << "Starting TCP Server...";
     
-    // Инициализация сервера (БД автоматически инициализируется как синглтон)
-    MyTcpServer server;
+    // Инициализация базы данных
+    Database* db = Database::getInstance();
+    if (db->connectToDatabase()) {
+        qDebug() << "Database connected successfully";
+    } else {
+        qDebug() << "Failed to connect to database";
+        return 1;
+    }
     
-    qDebug() << "Server is running...";
-    qDebug() << "Press Ctrl+C to stop";
-    qDebug() << "========================================";
+    // Запуск TCP сервера
+    MyTcpServer* server = MyTcpServer::getInstance();
+    if (server) {
+        qDebug() << "Server started successfully on port 12345";
+    } else {
+        qDebug() << "Failed to start server";
+        return 1;
+    }
     
     return a.exec();
 }
