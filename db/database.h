@@ -1,39 +1,70 @@
+/*!
+ * \file database.h
+ * \brief Заголовочный файл класса Database.
+ */
+
 #ifndef DATABASE_H
 #define DATABASE_H
 
 #include <QObject>
-#include <QDebug>
-#include <QtSql>
 #include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QString>
 
+/*!
+ * \brief Класс для работы с SQLite базой данных.
+ * 
+ * Database предоставляет методы для аутентификации пользователей,
+ * шифрования данных и сохранения логов. Реализован как синглтон.
+ */
 class Database : public QObject
 {
     Q_OBJECT
 public:
+    /*!
+     * \brief Получить единственный экземпляр базы данных.
+     * \return Указатель на Database.
+     */
     static Database* getInstance();
-    explicit Database(QObject *parent = nullptr);
+    
+    /*!
+     * \brief Деструктор. Закрывает соединение с БД.
+     */
     ~Database();
     
-    // Методы для работы с БД
-    bool connectToDatabase();
-    bool executeQuery(const QString &query);
-    bool createTables();
-    
-    // Методы для обработки запросов
-    bool vigenereCipher(const QString &text, const QString &key, QString &encrypted);
-    bool sha384Hash(const QString &text, QString &hash);
-    bool chordMethod(double a, double b, double eps, double &result);
-    bool hideMessageInImage(const QString &imagePath, const QString &message, const QString &outputPath);
+    /*!
+     * \brief Регистрация нового пользователя.
+     * \param username Имя пользователя.
+     * \param password Пароль (будет захэширован SHA-384).
+     * \return true при успешной регистрации, false при ошибке.
+     */
     bool registerUser(const QString &username, const QString &password);
+    
+    /*!
+     * \brief Аутентификация пользователя.
+     * \param username Имя пользователя.
+     * \param password Пароль.
+     * \return true если пользователь существует и пароль верен.
+     */
     bool loginUser(const QString &username, const QString &password);
-    bool saveRequestLog(const QString &command, const QString &request, const QString &result);
+    
+    /*!
+     * \brief Метод хорд для решения уравнений.
+     * \param a Левая граница интервала.
+     * \param b Правая граница интервала.
+     * \param eps Точность вычислений.
+     * \param result Ссылка для сохранения результата.
+     * \return true при успешном вычислении.
+     */
+    bool chordMethod(double a, double b, double eps, double &result);
     
 private:
-    static Database* m_instance;
-    QSqlDatabase m_db;
+    /*!
+     * \brief Приватный конструктор (синглтон).
+     * \param parent Родительский QObject.
+     */
+    explicit Database(QObject *parent = nullptr);
+    
+    static Database* m_instance;  ///< Единственный экземпляр класса
+    QSqlDatabase m_db;            ///< Объект подключения к БД
 };
 
 #endif

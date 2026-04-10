@@ -1,10 +1,23 @@
 QT -= gui
-QT += core sql network gui
+QT += core network sql
 
-CONFIG += c++17 console
+CONFIG += console c++17
 CONFIG -= app_bundle
+CONFIG -= windows
 
-SOURCES = main.cpp database.cpp mytcpserver.cpp
-HEADERS = database.h mytcpserver.h
+TARGET = db
+DESTDIR = build
 
-TARGET = echoServer
+SOURCES += \
+    main.cpp \
+    mytcpserver.cpp \
+    database.cpp
+
+HEADERS += \
+    mytcpserver.h \
+    database.h
+
+# Default rules for deployment
+qnx: target.path = /tmp/$${TARGET}/bin
+else: unix:!android: target.path = /opt/$${TARGET}/bin
+!isEmpty(target.path): INSTALLS += target

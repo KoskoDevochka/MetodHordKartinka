@@ -1,0 +1,7 @@
+<map id="MyTcpServer::slotClientDisconnected" name="MyTcpServer::slotClientDisconnected">
+<area shape="rect" id="Node000001" title="Обрабатывает отключение клиента." alt="" coords="536,5,799,31"/>
+<area shape="rect" id="Node000002" href="$classMyTcpServer.html#a0ba7316ffe1a26c57fabde9e74b6c8dc" title="Обрабатывает новое подключение клиента." alt="" coords="249,5,488,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="522,21,488,21,488,15,522,15"/>
+<area shape="rect" id="Node000003" href="$classMyTcpServer.html#acf367c4695b4d160c7a2d25c2afaaec4" title="Приватный конструктор (синглтон)." alt="" coords="5,5,201,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="236,21,201,21,201,15,236,15"/>
+</map>

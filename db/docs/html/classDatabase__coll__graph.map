@@ -1,0 +1,6 @@
+<map id="Database" name="Database">
+<area shape="rect" id="Node000001" title="Класс для работы с SQLite базой данных." alt="" coords="5,80,89,105"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="105,85,116,93,108,100,90,102,90,97,106,95,111,93,102,89"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="10,5,85,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="50,45,50,80,45,80,45,45"/>
+</map>

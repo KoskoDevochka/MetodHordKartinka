@@ -28,9 +28,9 @@ Database::~Database()
     }
 }
 
+// Остальные методы остаются без изменений...
 bool Database::connectToDatabase()
 {
-    // Получаем путь к текущей директории
     QString dbPath = QDir::current().absolutePath() + "/server.db";
     qDebug() << "Database path:" << dbPath;
     
@@ -43,7 +43,6 @@ bool Database::connectToDatabase()
     }
     qDebug() << "Database connected successfully";
     
-    // Создаем таблицы
     QSqlQuery query;
     
     QString createUsers = "CREATE TABLE IF NOT EXISTS users ("
@@ -74,7 +73,7 @@ bool Database::connectToDatabase()
 
 bool Database::createTables()
 {
-    return true; // Уже создано в connectToDatabase
+    return true;
 }
 
 bool Database::executeQuery(const QString &query)
@@ -124,7 +123,7 @@ bool Database::chordMethod(double a, double b, double eps, double &result)
     auto f = [](double x) { return x*x*x - 2*x - 5; };
     
     double x0 = a, x1 = b;
-    double x2;
+    double x2 = 0;
     int maxIter = 100;
     int iter = 0;
     
