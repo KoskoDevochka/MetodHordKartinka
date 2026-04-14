@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    container_name: tampe_server
+    ports:
+     
+      - "33333:33333"
+    volumes:
+ 
+      - ./data:/app/data
+  
+      - .:/app
+    environment:
+      - QT_DEBUG_PLUGINS=1
+    restart: unless-stopped
