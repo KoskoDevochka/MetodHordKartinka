@@ -1,0 +1,37 @@
+# Название проекта (строка PROJECT_NAME)
+PROJECT_NAME = "TCP Server with Database"
+
+# Версия проекта
+PROJECT_NUMBER = "1.0"
+
+# Директория для документации
+OUTPUT_DIRECTORY = docs
+
+# Входные файлы (текущая папка)
+INPUT = ./
+
+# Рекурсивно обходить подпапки
+RECURSIVE = YES
+
+# Извлекать всё (даже недокументированное)
+EXTRACT_ALL = YES
+
+# Извлекать приватные члены
+EXTRACT_PRIVATE = YES
+
+# Извлекать статические члены
+EXTRACT_STATIC = YES
+
+# Язык вывода (найдите OUTPUT_LANGUAGE)
+OUTPUT_LANGUAGE = Russian
+
+# Генерировать HTML
+GENERATE_HTML = YES
+
+# Не генерировать LaTeX (если не нужен)
+GENERATE_LATEX = NO
+
+# Включить диаграммы (если установлен graphviz)
+HAVE_DOT = YES
+CALL_GRAPH = YES
+CALLER_GRAPH = YES
