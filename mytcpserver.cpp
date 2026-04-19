@@ -142,7 +142,7 @@ void MyTcpServer::slotServerRead()
     }
 }
 
-// ==================== Парсинг (задание №3) ====================
+// ==================== Парсинг (задание №3 + задание №6) ====================
 
 /*!
  * \brief Разбирает текстовую команду от клиента.
@@ -151,7 +151,31 @@ void MyTcpServer::parseRequest(QTcpSocket* client, const QString& request)
 {
     qDebug() << "Parsing:" << request;
 
-    if(request.startsWith("action1")) {
+    // ==================== ЗАДАНИЕ №6: АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ ====================
+    if(request.startsWith("register ")) {
+        // Формат: register username password
+        QStringList parts = request.split(' ');
+        if(parts.size() >= 3) {
+            QString username = parts[1];
+            QString password = parts[2];
+            handleRegister(client, username, password);
+        } else {
+            sendToClient(client, "ERROR: Usage: register <username> <password>");
+        }
+    }
+    else if(request.startsWith("login ")) {
+        // Формат: login username password
+        QStringList parts = request.split(' ');
+        if(parts.size() >= 3) {
+            QString username = parts[1];
+            QString password = parts[2];
+            handleLogin(client, username, password);
+        } else {
+            sendToClient(client, "ERROR: Usage: login <username> <password>");
+        }
+    }
+    // ==================== ЗАДАНИЕ №3: ЗАГЛУШКИ ====================
+    else if(request.startsWith("action1")) {
         QString data = request.mid(7).trimmed();
         stub_function1(client, data);
     }
@@ -163,7 +187,7 @@ void MyTcpServer::parseRequest(QTcpSocket* client, const QString& request)
         stub_function3(client);
     }
     else {
-        sendToClient(client, "ERROR: Unknown request");
+        sendToClient(client, "ERROR: Unknown request. Available: register, login, action1, action2, help");
     }
 }
 
