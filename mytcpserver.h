@@ -122,6 +122,25 @@ private:
      * \param exclude Сокет клиента, которому не нужно отправлять (опционально)
      */
     void broadcastToAll(const QString& message, QTcpSocket* exclude = nullptr);
+
+   // АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ (задание №6) 
+    /*!
+     * \brief Обрабатывает регистрацию пользователя.
+     * \param client Сокет клиента
+     * \param username Имя пользователя
+     * \param password Пароль
+     */
+    void handleRegister(QTcpSocket* client, const QString& username, const QString& password);
+
+    /*!
+     * \brief Обрабатывает вход пользователя.
+     * \param client Сокет клиента
+     * \param username Имя пользователя
+     * \param password Пароль
+     */
+    void handleLogin(QTcpSocket* client, const QString& username, const QString& password);
 };
+
+
 
 #endif // MYTCPSERVER_H
