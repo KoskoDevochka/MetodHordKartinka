@@ -2,7 +2,7 @@
  * \file mytcpserver.cpp
  * \brief Реализация класса TCP-сервера.
  */
-
+#include "database.h"
 #include "mytcpserver.h"
 #include <QDebug>
 
@@ -285,5 +285,39 @@ void MyTcpServer::broadcastToAll(const QString& message, QTcpSocket* exclude)
             it.key()->write(message.toUtf8());
             it.key()->write("\r\n");
         }
+    }
+}
+
+//АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ (задание №6)
+
+/*!
+ * \brief Обрабатывает регистрацию пользователя.
+ */
+void MyTcpServer::handleRegister(QTcpSocket* client, const QString& username, const QString& password)
+{
+    Database* db = Database::getInstance();
+
+    if(db->registerUser(username, password)) {
+        sendToClient(client, "SUCCESS: User registered successfully");
+        qDebug() << "Registration success:" << username;
+    } else {
+        sendToClient(client, "ERROR: Username already exists or invalid data");
+        qDebug() << "Registration failed:" << username;
+    }
+}
+
+/*!
+ * \brief Обрабатывает вход пользователя.
+ */
+void MyTcpServer::handleLogin(QTcpSocket* client, const QString& username, const QString& password)
+{
+    Database* db = Database::getInstance();
+
+    if(db->loginUser(username, password)) {
+        sendToClient(client, "SUCCESS: Login successful");
+        qDebug() << "Login success:" << username;
+    } else {
+        sendToClient(client, "ERROR: Invalid username or password");
+        qDebug() << "Login failed:" << username;
     }
 }
