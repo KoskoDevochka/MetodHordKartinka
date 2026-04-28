@@ -139,6 +139,9 @@ private:
      * \param password Пароль
      */
     void handleLogin(QTcpSocket* client, const QString& username, const QString& password);
+
+    signals:
+        void logMessage(const QString& msg);
 };
 
 

@@ -1,21 +1,42 @@
-#include <QCoreApplication>
+#include <QApplication>
+#include <QThread>
+#include <QTimer>
 #include "mytcpserver.h"
 #include "database.h"
+#include "clientwindow.h"
+
+class ServerThread : public QThread
+{
+public:
+    void run() override {
+        Database::getInstance();
+        MyTcpServer::getInstance();
+        exec();
+    }
+
+    ~ServerThread() {
+        quit();
+        wait();
+    }
+};
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QApplication app(argc, argv);
 
-    // Инициализация БД (синглтон создастся автоматически)
-    Database* db = Database::getInstance();
-    Q_UNUSED(db); // чтобы не было warning о неиспользуемой переменной
-    
-    // Правильное использование синглтона - через getInstance()
-    MyTcpServer* server = MyTcpServer::getInstance();
-    Q_UNUSED(server);
-    
-    // Если нужно использовать Database:
-    // Database* db = Database::getInstance();
-    
-    return a.exec();
+    ServerThread serverThread;
+    serverThread.start();
+
+    QThread::sleep(1);
+
+    ClientWindow *client = new ClientWindow();
+    client->show();
+
+    // Если окно клиента закрыто, но сервер ещё нужен — ничего не делаем
+    // Если нужно завершить программу после закрытия клиента:
+    QObject::connect(client, &ClientWindow::destroyed, [&]() {
+        QTimer::singleShot(1000, &app, &QApplication::quit);
+    });
+
+    return app.exec();
 }
