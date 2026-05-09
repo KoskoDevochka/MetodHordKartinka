@@ -62,10 +62,6 @@ void MyTcpServer::slotNewConnection()
 
     m_clients[clientSocket] = info;
 
-    // УБИРАЕМ ЭТУ СТРОКУ, ОНА ЛОМАЕТ БРАУЗЕР
-    // QString greeting = "Connected to server. Total clients: " +
-    //                    QString::number(m_clients.size()) + "\r\n";
-    // clientSocket->write(greeting.toUtf8());
 
     qDebug() << "New client connected. Total:" << m_clients.size();
 
@@ -196,7 +192,7 @@ void MyTcpServer::stub_function3(QTcpSocket* client)
     qDebug() << "Stub: help";
 }
 
-// ==================== HTTP-обработка (задание подруги №4) ====================
+// ==================== HTTP-обработка (№4) ====================
 
 /*!
  * \brief Обрабатывает HTTP-запросы от браузера.
