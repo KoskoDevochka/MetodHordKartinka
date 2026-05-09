@@ -153,7 +153,7 @@ void ClientWindow::showMainWindow()
     statusLayout->addStretch();
 
     // МЕТКА СТАТУСА ПОДКЛЮЧЕНИЯ
-    connectionStatusLabel = new QLabel("🟢 Подключено к серверу");
+    connectionStatusLabel = new QLabel(" Подключено к серверу");
     connectionStatusLabel->setStyleSheet("color: green;");
     statusLayout->addWidget(connectionStatusLabel);
 
@@ -191,7 +191,7 @@ void ClientWindow::showMainWindow()
     mainLayout->addLayout(btnLayout);
 
     // ===== ТАБЛИЦА ДАННЫХ (2 колонки, без столбца "№") =====
-    QLabel *tableTitle = new QLabel("📊 Данные от сервера (Таблица)");
+    QLabel *tableTitle = new QLabel(" Данные от сервера (Таблица)");
     tableTitle->setStyleSheet("font-weight: bold; margin-top: 10px;");
     mainLayout->addWidget(tableTitle);
 
@@ -226,14 +226,14 @@ void ClientWindow::showMainWindow()
 
     connect(socket, &QTcpSocket::disconnected, this, [this]() {
         if (connectionStatusLabel) {
-            connectionStatusLabel->setText("🔴 Отключено от сервера");
+            connectionStatusLabel->setText(" Отключено от сервера");
             connectionStatusLabel->setStyleSheet("color: red;");
         }
     });
 
     connect(socket, &QTcpSocket::connected, this, [this]() {
         if (connectionStatusLabel) {
-            connectionStatusLabel->setText("🟢 Подключено к серверу");
+            connectionStatusLabel->setText(" Подключено к серверу");
             connectionStatusLabel->setStyleSheet("color: green;");
         }
     });
