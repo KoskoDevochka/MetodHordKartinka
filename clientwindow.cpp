@@ -8,6 +8,8 @@
 #include <QCheckBox>
 #include <QTimer>
 #include <QCloseEvent>
+#include <QHeaderView>
+#include <QMessageBox>
 
 ClientWindow::ClientWindow(QWidget *parent)
     : QMainWindow(parent), socket(new QTcpSocket(this)), isAuthorized(false), adminLogWindow(nullptr)
@@ -51,7 +53,6 @@ void ClientWindow::showAuthDialog()
     statusAuthLabel->setStyleSheet("color: red;");
     layout->addWidget(statusAuthLabel);
 
-    // Если сокет ещё не подключён, подключаем
     if (socket->state() != QTcpSocket::ConnectedState) {
         socket->connectToHost("127.0.0.1", 33333);
         if (!socket->waitForConnected(3000)) {
@@ -70,7 +71,7 @@ void ClientWindow::showAuthDialog()
             return;
         }
 
-        socket->write(QString("login %1 %2\r\n").arg(username).arg(password).toUtf8());
+        socket->write(QString("login %1 %2\r\n").arg(username, password).toUtf8());
         socket->flush();
 
         if (socket->waitForReadyRead(5000)) {
@@ -81,7 +82,7 @@ void ClientWindow::showAuthDialog()
                 isAuthorized = true;
 
                 if (isAdmin) {
-                    showAdminLogWindow();  //открываем окно с логами
+                    showAdminLogWindow();
                 }
 
                 authDialog->close();
@@ -95,6 +96,7 @@ void ClientWindow::showAuthDialog()
         }
     });
 
+    // РЕГИСТРАЦИЯ
     connect(registerBtn, &QPushButton::clicked, [this]() {
         QString username = usernameEdit->text().trimmed();
         QString password = passwordEdit->text().trimmed();
@@ -104,7 +106,7 @@ void ClientWindow::showAuthDialog()
             return;
         }
 
-        socket->write(QString("register %1 %2\r\n").arg(username).arg(password).toUtf8());
+        socket->write(QString("register %1 %2\r\n").arg(username, password).toUtf8());
         socket->flush();
 
         if (socket->waitForReadyRead(5000)) {
@@ -135,16 +137,29 @@ void ClientWindow::showAuthDialog()
 void ClientWindow::showMainWindow()
 {
     setWindowTitle("Клиент MetodHordKartinka");
-    resize(700, 600);
+    resize(900, 700);
 
     QWidget *central = new QWidget;
     setCentralWidget(central);
     QVBoxLayout *mainLayout = new QVBoxLayout(central);
 
-    statusLabel = new QLabel("● Авторизован");
-    statusLabel->setStyleSheet("color: green;");
-    mainLayout->addWidget(statusLabel);
+    // ===== ВЕРХНЯЯ ПАНЕЛЬ С МЕТКАМИ СТАТУСА =====
+    QHBoxLayout *statusLayout = new QHBoxLayout();
 
+    statusLabel = new QLabel("● Авторизован");
+    statusLabel->setStyleSheet("color: green; font-weight: bold;");
+    statusLayout->addWidget(statusLabel);
+
+    statusLayout->addStretch();
+
+    // МЕТКА СТАТУСА ПОДКЛЮЧЕНИЯ
+    connectionStatusLabel = new QLabel("🟢 Подключено к серверу");
+    connectionStatusLabel->setStyleSheet("color: green;");
+    statusLayout->addWidget(connectionStatusLabel);
+
+    mainLayout->addLayout(statusLayout);
+
+    // ===== ВЫБОР ФУНКЦИИ =====
     QGroupBox *funcBox = new QGroupBox("Выберите функцию");
     QVBoxLayout *funcLayout = new QVBoxLayout;
     functionCombo = new QComboBox;
@@ -156,6 +171,7 @@ void ClientWindow::showMainWindow()
     funcBox->setLayout(funcLayout);
     mainLayout->addWidget(funcBox);
 
+    // ===== ВХОДНЫЕ ДАННЫЕ =====
     QGroupBox *inputBox = new QGroupBox("Входные данные");
     QVBoxLayout *inputLayout = new QVBoxLayout;
     inputArea = new QTextEdit;
@@ -164,15 +180,34 @@ void ClientWindow::showMainWindow()
     inputBox->setLayout(inputLayout);
     mainLayout->addWidget(inputBox);
 
+    // ===== КНОПКИ =====
+    QHBoxLayout *btnLayout = new QHBoxLayout();
     sendBtn = new QPushButton("Отправить на сервер");
     sendBtn->setStyleSheet("background-color: lightblue; height: 30px;");
-    mainLayout->addWidget(sendBtn);
-
     disconnectBtn = new QPushButton("Отключиться от сервера");
     disconnectBtn->setStyleSheet("background-color: orange; height: 30px;");
-    mainLayout->addWidget(disconnectBtn);
+    btnLayout->addWidget(sendBtn);
+    btnLayout->addWidget(disconnectBtn);
+    mainLayout->addLayout(btnLayout);
 
-    QGroupBox *logBox = new QGroupBox("Лог сообщений");
+    // ===== ТАБЛИЦА ДАННЫХ (2 колонки, без столбца "№") =====
+    QLabel *tableTitle = new QLabel("📊 Данные от сервера (Таблица)");
+    tableTitle->setStyleSheet("font-weight: bold; margin-top: 10px;");
+    mainLayout->addWidget(tableTitle);
+
+    dataTable = new QTableWidget(this);
+    dataTable->setColumnCount(2);  // 2 колонки, без "№"
+    QStringList headers;
+    headers << "Функция" << "Ответ сервера";
+    dataTable->setHorizontalHeaderLabels(headers);
+    dataTable->horizontalHeader()->setStretchLastSection(true);
+    dataTable->setAlternatingRowColors(true);
+    dataTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    dataTable->setMinimumHeight(200);
+    mainLayout->addWidget(dataTable);
+
+    // ===== СТАРЫЙ ЛОГ (оставляем для совместимости) =====
+    QGroupBox *logBox = new QGroupBox("Лог сообщений (текстовый)");
     QVBoxLayout *logLayout = new QVBoxLayout;
     logArea = new QTextEdit;
     logArea->setReadOnly(true);
@@ -180,11 +215,50 @@ void ClientWindow::showMainWindow()
     logBox->setLayout(logLayout);
     mainLayout->addWidget(logBox);
 
+    // ПОДКЛЮЧАЕМ СИГНАЛЫ
     connect(sendBtn, &QPushButton::clicked, this, &ClientWindow::sendRequest);
     connect(disconnectBtn, &QPushButton::clicked, this, &ClientWindow::disconnectFromServer);
     connect(socket, &QTcpSocket::readyRead, this, &ClientWindow::onReadyRead);
 
+    connect(socket, &QTcpSocket::disconnected, this, [this]() {
+        if (connectionStatusLabel) {
+            connectionStatusLabel->setText(" Отключено от сервера");
+            connectionStatusLabel->setStyleSheet("color: red;");
+        }
+    });
+
+    connect(socket, &QTcpSocket::connected, this, [this]() {
+        if (connectionStatusLabel) {
+            connectionStatusLabel->setText(" Подключено к серверу");
+            connectionStatusLabel->setStyleSheet("color: green;");
+        }
+    });
+
     logArea->append("Авторизация успешна!");
+}
+
+void ClientWindow::addDataToTable(const QString &data)
+{
+    if (!dataTable) return;
+
+    int row = dataTable->rowCount();
+    dataTable->insertRow(row);
+
+    QString funcName = functionCombo->currentText();
+
+    // Только 2 колонки: Функция и Ответ сервера
+    dataTable->setItem(row, 0, new QTableWidgetItem(funcName));
+    dataTable->setItem(row, 1, new QTableWidgetItem(data.left(200)));
+
+    dataTable->resizeColumnsToContents();
+    dataTable->scrollToBottom();
+}
+
+void ClientWindow::clearTable()
+{
+    if (dataTable) {
+        dataTable->setRowCount(0);
+    }
 }
 
 void ClientWindow::showAdminLogWindow()
@@ -214,6 +288,11 @@ void ClientWindow::showAdminLogWindow()
 
 void ClientWindow::sendRequest()
 {
+    if (!socket->isOpen() || !isAuthorized) {
+        QMessageBox::warning(this, "Ошибка", "Нет подключения к серверу");
+        return;
+    }
+
     int funcId = functionCombo->currentIndex();
     QString inputData = inputArea->toPlainText().trimmed();
 
@@ -233,28 +312,29 @@ void ClientWindow::sendRequest()
 void ClientWindow::onReadyRead()
 {
     QByteArray data = socket->readAll();
-    logArea->append(QString("Ответ сервера:\n%1\n%2").arg(QString::fromUtf8(data)).arg(QString(50, '-')));
+    QString response = QString::fromUtf8(data);
+
+    logArea->append(QString("Ответ сервера:\n%1\n%2").arg(response).arg(QString(50, '-')));
+
+    // Добавляем в таблицу
+    addDataToTable(response.trimmed());
 }
 
 void ClientWindow::disconnectFromServer()
 {
-    // Отключаем сокет
     if (socket->state() == QTcpSocket::ConnectedState) {
         socket->disconnectFromHost();
         socket->waitForDisconnected(1000);
     }
 
-    // Закрываем окно логов админа
     if (adminLogWindow) {
         adminLogWindow->close();
         delete adminLogWindow;
         adminLogWindow = nullptr;
     }
 
-    // Закрываем текущее окно клиента
     this->close();
 
-    // Создаём новое окно клиента
     ClientWindow *newClient = new ClientWindow();
     newClient->show();
 }
