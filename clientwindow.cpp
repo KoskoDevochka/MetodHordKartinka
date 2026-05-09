@@ -196,7 +196,7 @@ void ClientWindow::showMainWindow()
     mainLayout->addWidget(tableTitle);
 
     dataTable = new QTableWidget(this);
-    dataTable->setColumnCount(2);  // 2 колонки, без "№"
+    dataTable->setColumnCount(2);
     QStringList headers;
     headers << "Функция" << "Ответ сервера";
     dataTable->setHorizontalHeaderLabels(headers);
@@ -204,6 +204,10 @@ void ClientWindow::showMainWindow()
     dataTable->setAlternatingRowColors(true);
     dataTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     dataTable->setMinimumHeight(200);
+
+    // ЗАПРЕЩАЕМ РЕДАКТИРОВАНИЕ ТАБЛИЦЫ
+    dataTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
     mainLayout->addWidget(dataTable);
 
     // ===== СТАРЫЙ ЛОГ (оставляем для совместимости) =====
@@ -222,14 +226,14 @@ void ClientWindow::showMainWindow()
 
     connect(socket, &QTcpSocket::disconnected, this, [this]() {
         if (connectionStatusLabel) {
-            connectionStatusLabel->setText(" Отключено от сервера");
+            connectionStatusLabel->setText("🔴 Отключено от сервера");
             connectionStatusLabel->setStyleSheet("color: red;");
         }
     });
 
     connect(socket, &QTcpSocket::connected, this, [this]() {
         if (connectionStatusLabel) {
-            connectionStatusLabel->setText(" Подключено к серверу");
+            connectionStatusLabel->setText("🟢 Подключено к серверу");
             connectionStatusLabel->setStyleSheet("color: green;");
         }
     });
