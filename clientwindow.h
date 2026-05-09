@@ -9,6 +9,9 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QDialog>
+#include <QTableWidget>  // НОВОЕ: для таблицы
+#include <QVBoxLayout>   // НОВОЕ: для layout
+#include <QHBoxLayout>   // НОВОЕ: для layout
 
 class ClientWindow : public QMainWindow
 {
@@ -30,6 +33,8 @@ private:
     void showAuthDialog();
     void showMainWindow();
     void showAdminLogWindow();
+    void addDataToTable(const QString &data);  // НОВОЕ: добавляет данные в таблицу
+    void clearTable();                          // НОВОЕ: очищает таблицу
 
     QTcpSocket *socket;
     bool isAuthorized;
@@ -44,7 +49,12 @@ private:
     QPushButton *disconnectBtn;
     QComboBox *functionCombo;
     QLabel *statusLabel;
+    QLabel *connectionStatusLabel;  // НОВОЕ: статус подключения (зелёный/красный)
     QWidget *adminLogWindow;
+
+    // НОВЫЕ ВИДЖЕТЫ ДЛЯ ТАБЛИЦЫ
+    QTableWidget *dataTable;         // ТАБЛИЦА для отображения данных
+    QWidget *tableContainer;         // Контейнер для таблицы
 };
 
 #endif
