@@ -37,7 +37,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = echoServer1.0.0
-DISTDIR = /home/student/Downloads/MetodHordKartinka-main/db/.tmp/echoServer1.0.0
+DISTDIR = /home/student/Documents/GitHub/MetodHordKartinka/db/.tmp/echoServer1.0.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-rpath-link,/usr/lib/x86_64-linux-gnu
 LIBS          = $(SUBLIBS) /usr/lib/x86_64-linux-gnu/libQt6Sql.so /usr/lib/x86_64-linux-gnu/libQt6Network.so /usr/lib/x86_64-linux-gnu/libQt6Gui.so /usr/lib/x86_64-linux-gnu/libGLX.so /usr/lib/x86_64-linux-gnu/libOpenGL.so /usr/lib/x86_64-linux-gnu/libQt6Core.so -lpthread -lGLX -lOpenGL   
@@ -348,13 +348,12 @@ compiler_moc_header_clean:
 moc_database.cpp: database.h \
 		moc_predefs.h \
 		/usr/lib/qt6/libexec/moc
-	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/student/Downloads/MetodHordKartinka-main/db/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/student/Downloads/MetodHordKartinka-main/db -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtSql -I/usr/include/x86_64-linux-gnu/qt6/QtNetwork -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include database.h -o moc_database.cpp
+	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/student/Documents/GitHub/MetodHordKartinka/db/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/student/Documents/GitHub/MetodHordKartinka/db -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtSql -I/usr/include/x86_64-linux-gnu/qt6/QtNetwork -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include database.h -o moc_database.cpp
 
 moc_mytcpserver.cpp: mytcpserver.h \
-		database.h \
 		moc_predefs.h \
 		/usr/lib/qt6/libexec/moc
-	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/student/Downloads/MetodHordKartinka-main/db/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/student/Downloads/MetodHordKartinka-main/db -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtSql -I/usr/include/x86_64-linux-gnu/qt6/QtNetwork -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include mytcpserver.h -o moc_mytcpserver.cpp
+	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/student/Documents/GitHub/MetodHordKartinka/db/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/student/Documents/GitHub/MetodHordKartinka/db -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtSql -I/usr/include/x86_64-linux-gnu/qt6/QtNetwork -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include mytcpserver.h -o moc_mytcpserver.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -377,8 +376,8 @@ main.o: main.cpp database.h \
 database.o: database.cpp database.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o database.o database.cpp
 
-mytcpserver.o: mytcpserver.cpp mytcpserver.h \
-		database.h
+mytcpserver.o: mytcpserver.cpp database.h \
+		mytcpserver.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mytcpserver.o mytcpserver.cpp
 
 moc_database.o: moc_database.cpp 
