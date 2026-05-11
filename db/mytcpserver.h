@@ -51,7 +51,7 @@ public slots:
 private:
     explicit MyTcpServer(QObject *parent = nullptr);
 
-    // ==================== РОЛИ (задание №7) ====================
+    //  РОЛИ (задание №7)
     /*!
      * \brief Перечисление ролей клиента.
      *
